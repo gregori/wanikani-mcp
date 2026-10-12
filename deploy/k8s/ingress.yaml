@@ -1,0 +1,27 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: wanikani-mcp-ingress
+  namespace: wanikani-mcp
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: >-
+      wanikani-mcp-wanikani-mcp-redirect@kubernetescrd
+    # Mesma emissão de TLS do novel-translator: se lá houver uma anotação
+    # do cert-manager (ex.: cert-manager.io/cluster-issuer), copie aqui.
+spec:
+  ingressClassName: traefik
+  tls:
+    - hosts:
+        - <host>
+      secretName: wanikani-mcp-tls
+  rules:
+    - host: <host>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: wanikani-mcp
+                port:
+                  number: 80
