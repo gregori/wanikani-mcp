@@ -29,12 +29,23 @@ jobs:
 
       - name: Verify secrets
         run: |
-          for s in OCI_REGISTRY OCI_TENANCY_NAMESPACE WANIKANI_API_TOKEN MCP_PATH_SECRET INGRESS_HOST; do
-            test -n "${!s}" || { echo "$s is empty"; exit 1; }
+          missing=()
+          for s in OCI_REGISTRY OCI_REGISTRY_USERNAME OCI_REGISTRY_PASSWORD OCI_TENANCY_NAMESPACE \
+                   K8S_NODE_PUBLIC_IP OCI_SSH_PRIVATE_KEY \
+                   WANIKANI_API_TOKEN MCP_PATH_SECRET INGRESS_HOST; do
+            test -n "${!s}" || missing+=("$s")
           done
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Secrets ausentes ou vazios: ${missing[*]}"
+            exit 1
+          fi
         env:
           OCI_REGISTRY: ${{ secrets.OCI_REGISTRY }}
+          OCI_REGISTRY_USERNAME: ${{ secrets.OCI_REGISTRY_USERNAME }}
+          OCI_REGISTRY_PASSWORD: ${{ secrets.OCI_REGISTRY_PASSWORD }}
           OCI_TENANCY_NAMESPACE: ${{ secrets.OCI_TENANCY_NAMESPACE }}
+          K8S_NODE_PUBLIC_IP: ${{ secrets.K8S_NODE_PUBLIC_IP }}
+          OCI_SSH_PRIVATE_KEY: ${{ secrets.OCI_SSH_PRIVATE_KEY }}
           WANIKANI_API_TOKEN: ${{ secrets.WANIKANI_API_TOKEN }}
           MCP_PATH_SECRET: ${{ secrets.MCP_PATH_SECRET }}
           INGRESS_HOST: ${{ secrets.INGRESS_HOST }}
