@@ -130,3 +130,23 @@ def test_lookup(client):
     assert [k["item"] for k in r["kanji"]] == ["勤", "務"]
     r = call(client, "lookup", {"text": "勤"})
     assert [v["item"] for v in r["studied_vocabulary"]] == ["勤務"]
+
+
+def test_missing_config_returns_503(monkeypatch):
+    monkeypatch.delenv("MCP_PATH_SECRET", raising=False)
+    with TestClient(create_app()) as c:
+        r = c.get("/qualquer")
+        assert r.status_code == 503 and "MCP_PATH_SECRET" in r.text
+
+
+def test_vercel_entrypoint_imports(monkeypatch):
+    monkeypatch.setenv("MCP_PATH_SECRET", SECRET)
+    monkeypatch.setenv("WANIKANI_API_TOKEN", "t")
+    import importlib.util
+    import pathlib
+    path = pathlib.Path(__file__).parent.parent / "app.py"
+    spec = importlib.util.spec_from_file_location("vercel_app", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    with TestClient(mod.app) as c:
+        assert c.get("/healthz").text == "ok"

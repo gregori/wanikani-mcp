@@ -243,14 +243,25 @@ def build_server(wk: WaniKani) -> MCPServer:
     return mcp
 
 
+def _misconfigured(reason: str):
+    """App mínimo que explica o erro de configuração em vez de derrubar o deploy."""
+    from starlette.applications import Starlette
+    from starlette.routing import Route
+
+    async def handler(_: Request) -> PlainTextResponse:
+        return PlainTextResponse(f"wanikani-mcp mal configurado: {reason}", status_code=503)
+
+    return Starlette(routes=[Route("/{path:path}", handler, methods=["GET", "POST"])])
+
+
 def create_app(wk: WaniKani | None = None):
     token = os.environ.get("WANIKANI_API_TOKEN", "")
     secret = os.environ.get("MCP_PATH_SECRET", "")
     if len(secret) < 32:
-        raise SystemExit("MCP_PATH_SECRET precisa ter 32+ caracteres.")
+        return _misconfigured("MCP_PATH_SECRET precisa ter 32+ caracteres.")
     if wk is None:
         if not token:
-            raise SystemExit("Defina WANIKANI_API_TOKEN.")
+            return _misconfigured("defina WANIKANI_API_TOKEN.")
         wk = WaniKani(token)
     hosts = [h.strip() for h in os.environ.get("MCP_ALLOWED_HOSTS", "").split(",") if h.strip()]
     security = TransportSecuritySettings(
